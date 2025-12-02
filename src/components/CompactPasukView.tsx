@@ -10,6 +10,7 @@ import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext"
 import { cn } from "@/lib/utils";
 import { memo } from "react";
 import { useBookmarks } from "@/contexts/BookmarksContext";
+import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { Button } from "@/components/ui/button";
 import { NotesDialog } from "@/components/NotesDialog";
 import { ContentEditor } from "@/components/ContentEditor";
@@ -29,6 +30,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isBookmarked, toggleBookmark } = useBookmarks();
+  const { displaySettings } = useDisplayMode();
   const navigate = useNavigate();
 
   const firstNewPasukRef = useRef<HTMLDivElement>(null);
@@ -36,9 +38,10 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
 
   const displayedPesukim = pesukim.slice(0, displayedCount);
   const hasMore = displayedCount < pesukim.length;
+  const loadMoreAmount = displaySettings.loadMoreCount || 10;
 
   const loadMore = () => {
-    setDisplayedCount(prev => Math.min(prev + 10, pesukim.length));
+    setDisplayedCount(prev => Math.min(prev + loadMoreAmount, pesukim.length));
   };
 
   // Auto-scroll to newly loaded pesukim
@@ -257,7 +260,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
             className="gap-2 hover:bg-accent/50 transition-all hover:scale-105"
           >
             <Plus className="h-5 w-5" />
-            <span className="font-medium">טען עוד פסוקים ({pesukim.length - displayedCount} נותרו)</span>
+            <span className="font-medium">טען עוד {Math.min(loadMoreAmount, pesukim.length - displayedCount)} פסוקים ({pesukim.length - displayedCount} נותרו)</span>
           </Button>
         </div>
       )}
