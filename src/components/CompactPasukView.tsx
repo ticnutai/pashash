@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus } from "lucide-react";
@@ -31,12 +31,29 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const navigate = useNavigate();
 
+  const firstNewPasukRef = useRef<HTMLDivElement>(null);
+  const prevDisplayedCountRef = useRef(displayedCount);
+
   const displayedPesukim = pesukim.slice(0, displayedCount);
   const hasMore = displayedCount < pesukim.length;
 
   const loadMore = () => {
     setDisplayedCount(prev => Math.min(prev + 10, pesukim.length));
   };
+
+  // Auto-scroll to newly loaded pesukim
+  useEffect(() => {
+    if (displayedCount > prevDisplayedCountRef.current && firstNewPasukRef.current) {
+      setTimeout(() => {
+        firstNewPasukRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+      }, 100);
+    }
+    prevDisplayedCountRef.current = displayedCount;
+  }, [displayedCount]);
 
   const togglePasuk = (pasukId: number) => {
     setExpandedPasukId(expandedPasukId === pasukId ? null : pasukId);
@@ -66,12 +83,14 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
       className="flex flex-col animate-fade-in"
       style={{ gap: displayStyles.gap }}
     >
-      {displayedPesukim.map((pasuk) => {
+      {displayedPesukim.map((pasuk, index) => {
         const isExpanded = expandedPasukId === pasuk.id;
+        const isFirstNew = index === prevDisplayedCountRef.current - 10;
         
         return (
           <Card 
-            key={pasuk.id} 
+            key={pasuk.id}
+            ref={isFirstNew ? firstNewPasukRef : null}
             className={cn(
               "overflow-hidden w-full transition-all duration-300 border-r-4 cursor-pointer",
               isExpanded ? "border-r-primary shadow-xl ring-2 ring-primary/50" : "border-r-accent shadow-sm hover:shadow-md"
