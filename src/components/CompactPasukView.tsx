@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote } from "lucide-react";
+import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus } from "lucide-react";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { formatTorahText } from "@/utils/textUtils";
 import { PasukDisplay } from "@/components/PasukDisplay";
@@ -25,10 +25,18 @@ interface CompactPasukViewProps {
 export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
+  const [displayedCount, setDisplayedCount] = useState(10);
   const displayStyles = useTextDisplayStyles();
   const { settings } = useFontAndColorSettings();
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const navigate = useNavigate();
+
+  const displayedPesukim = pesukim.slice(0, displayedCount);
+  const hasMore = displayedCount < pesukim.length;
+
+  const loadMore = () => {
+    setDisplayedCount(prev => Math.min(prev + 10, pesukim.length));
+  };
 
   const togglePasuk = (pasukId: number) => {
     setExpandedPasukId(expandedPasukId === pasukId ? null : pasukId);
@@ -58,7 +66,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
       className="flex flex-col animate-fade-in"
       style={{ gap: displayStyles.gap }}
     >
-      {pesukim.map((pasuk) => {
+      {displayedPesukim.map((pasuk) => {
         const isExpanded = expandedPasukId === pasuk.id;
         
         return (
@@ -221,10 +229,24 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
         </Card>
       )}
 
+      {hasMore && (
+        <div className="flex justify-center py-6 animate-fade-in">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={loadMore}
+            className="gap-2 hover:bg-accent/50 transition-all hover:scale-105"
+          >
+            <Plus className="h-5 w-5" />
+            <span className="font-medium">טען עוד פסוקים ({pesukim.length - displayedCount} נותרו)</span>
+          </Button>
+        </div>
+      )}
+
       {editorPasukId && (
         <ContentEditor
           pasukId={editorPasukId}
-          pasukText={pesukim.find(p => `${seferId}-${p.perek}-${p.pasuk_num}` === editorPasukId)?.text || ""}
+          pasukText={displayedPesukim.find(p => `${seferId}-${p.perek}-${p.pasuk_num}` === editorPasukId)?.text || ""}
           open={!!editorPasukId}
           onOpenChange={(open) => !open && setEditorPasukId(null)}
         />
