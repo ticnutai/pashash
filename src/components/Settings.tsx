@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme, Theme } from "@/contexts/ThemeContext";
 import { useFontAndColorSettings } from "@/contexts/FontAndColorSettingsContext";
+import { useDisplayMode } from "@/contexts/DisplayModeContext";
 import { DataManager } from "@/components/DataManager";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,6 +49,7 @@ const fonts = [
 export const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useFontAndColorSettings();
+  const { displaySettings, updateDisplaySettings } = useDisplayMode();
   const [isIsrael, setIsIsrael] = useState(getCalendarPreference());
 
   const handleCalendarChange = (checked: boolean) => {
@@ -658,6 +660,46 @@ export const Settings = () => {
                   <Label htmlFor="width-full" className="flex-1 text-right">
                     <div className="font-semibold">מלא</div>
                     <div className="text-sm text-muted-foreground">100% - מילוי המסך</div>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg">כמות פסוקים לטעינה</h3>
+              <p className="text-sm text-muted-foreground">בחר כמה פסוקים להוסיף כשלוחצים על "טען עוד"</p>
+              <RadioGroup 
+                value={displaySettings.loadMoreCount.toString()} 
+                onValueChange={(value) => updateDisplaySettings({ loadMoreCount: parseInt(value) })}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="5" id="load-5" />
+                  <Label htmlFor="load-5" className="flex-1 text-right">
+                    <div className="font-semibold">5 פסוקים</div>
+                    <div className="text-sm text-muted-foreground">טעינה מהירה וממוקדת</div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="10" id="load-10" />
+                  <Label htmlFor="load-10" className="flex-1 text-right">
+                    <div className="font-semibold">10 פסוקים</div>
+                    <div className="text-sm text-muted-foreground">טעינה סטנדרטית (מומלץ)</div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="20" id="load-20" />
+                  <Label htmlFor="load-20" className="flex-1 text-right">
+                    <div className="font-semibold">20 פסוקים</div>
+                    <div className="text-sm text-muted-foreground">טעינה מהירה</div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="50" id="load-50" />
+                  <Label htmlFor="load-50" className="flex-1 text-right">
+                    <div className="font-semibold">50 פסוקים</div>
+                    <div className="text-sm text-muted-foreground">טעינה מקסימלית</div>
                   </Label>
                 </div>
               </RadioGroup>

@@ -7,6 +7,7 @@ export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimiz
 export interface DisplaySettings {
   mode: DisplayMode;
   pasukCount: number;
+  loadMoreCount: number;
 }
 
 interface DisplayModeContextType {
@@ -18,6 +19,7 @@ interface DisplayModeContextType {
 const defaultSettings: DisplaySettings = {
   mode: "scroll",
   pasukCount: 10,
+  loadMoreCount: 10,
 };
 
 const DisplayModeContext = createContext<DisplayModeContextType | undefined>(undefined);
@@ -54,6 +56,7 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
   const safeDisplaySettings: DisplaySettings = {
     mode: displaySettings?.mode || defaultSettings.mode,
     pasukCount: displaySettings?.pasukCount || defaultSettings.pasukCount,
+    loadMoreCount: displaySettings?.loadMoreCount || defaultSettings.loadMoreCount,
   };
 
   return (
