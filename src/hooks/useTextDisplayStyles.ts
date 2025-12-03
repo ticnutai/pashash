@@ -9,27 +9,45 @@ export const useTextDisplayStyles = () => {
   const fontScale = settings.fontScale || 1;
 
   // Spacing values - responsive
-  const spacingMap = {
-    compact: isMobile ? "0.25rem" : "0.5rem",
-    normal: isMobile ? "0.5rem" : "1rem",
-    comfortable: isMobile ? "0.75rem" : "1.5rem",
-    spacious: isMobile ? "1rem" : "2rem",
+  const getSpacing = () => {
+    if (settings.contentSpacing === "custom") {
+      return `${settings.contentSpacingCustom || 1}rem`;
+    }
+    const spacingMap = {
+      compact: isMobile ? "0.25rem" : "0.5rem",
+      normal: isMobile ? "0.5rem" : "1rem",
+      comfortable: isMobile ? "0.75rem" : "1.5rem",
+      spacious: isMobile ? "1rem" : "2rem",
+    };
+    return spacingMap[settings.contentSpacing] || spacingMap.normal;
   };
 
   // Line height values
-  const lineHeightMap = {
-    tight: "1.3",
-    normal: "1.5",
-    relaxed: "1.7",
-    loose: "2.0",
+  const getLineHeight = () => {
+    if (settings.lineHeight === "custom") {
+      return String(settings.lineHeightCustom || 1.5);
+    }
+    const lineHeightMap = {
+      tight: "1.3",
+      normal: "1.5",
+      relaxed: "1.7",
+      loose: "2.0",
+    };
+    return lineHeightMap[settings.lineHeight] || lineHeightMap.normal;
   };
 
   // Letter spacing values
-  const letterSpacingMap = {
-    tight: "-0.02em",
-    normal: "0em",
-    wide: "0.05em",
-    wider: "0.1em",
+  const getLetterSpacing = () => {
+    if (settings.letterSpacing === "custom") {
+      return `${settings.letterSpacingCustom || 0}em`;
+    }
+    const letterSpacingMap = {
+      tight: "-0.02em",
+      normal: "0em",
+      wide: "0.05em",
+      wider: "0.1em",
+    };
+    return letterSpacingMap[settings.letterSpacing] || letterSpacingMap.normal;
   };
 
   // Content width values - responsive with max constraints
@@ -57,9 +75,9 @@ export const useTextDisplayStyles = () => {
 
   return {
     textAlign: alignmentMap[settings.textAlignment] as "right" | "center" | "left",
-    gap: spacingMap[settings.contentSpacing],
-    lineHeight: lineHeightMap[settings.lineHeight],
-    letterSpacing: letterSpacingMap[settings.letterSpacing],
+    gap: getSpacing(),
+    lineHeight: getLineHeight(),
+    letterSpacing: getLetterSpacing(),
     maxWidth: getMaxWidth(),
     margin: settings.textAlignment === "center" ? "0 auto" : "0",
     padding,
