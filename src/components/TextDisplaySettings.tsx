@@ -1,6 +1,6 @@
 import { AlignRight, AlignCenter, AlignLeft, Space, Palette, AlignJustify, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,15 +58,16 @@ export const TextDisplaySettings = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 text-white hover:text-white hover:bg-white/10"
+          variant="outline"
+          size="sm"
+          className="gap-2"
           title="הגדרות תצוגת טקסט"
         >
           <Palette className="h-4 w-4" />
+          <span className="hidden sm:inline">עיצוב טקסט</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="text-right">תצוגת טקסט</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
@@ -101,7 +102,7 @@ export const TextDisplaySettings = () => {
             <Space className="ml-2 h-4 w-4" />
             מרווח תוכן
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent className="w-56">
             {spacings.map((spacing) => (
               <DropdownMenuItem
                 key={spacing.value}
@@ -117,18 +118,22 @@ export const TextDisplaySettings = () => {
               </DropdownMenuItem>
             ))}
             {settings.contentSpacing === "custom" && (
-              <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
-                <Input
-                  type="number"
-                  step="0.25"
-                  min="0"
-                  max="5"
-                  value={settings.contentSpacingCustom || 1}
-                  onChange={(e) => updateSettings({ contentSpacingCustom: parseFloat(e.target.value) || 1 })}
-                  className="h-8 text-right"
-                  placeholder="rem"
+              <div className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">{(settings.contentSpacingCustom || 1).toFixed(2)} rem</span>
+                </div>
+                <Slider
+                  value={[settings.contentSpacingCustom || 1]}
+                  onValueChange={([value]) => updateSettings({ contentSpacingCustom: value })}
+                  min={0}
+                  max={5}
+                  step={0.25}
+                  className="w-full"
                 />
-                <div className="text-xs text-muted-foreground text-right mt-1">ערך ב-rem</div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>5</span>
+                  <span>0</span>
+                </div>
               </div>
             )}
           </DropdownMenuSubContent>
@@ -140,7 +145,7 @@ export const TextDisplaySettings = () => {
             <AlignJustify className="ml-2 h-4 w-4" />
             גובה שורה
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent className="w-56">
             {lineHeights.map((lineHeight) => (
               <DropdownMenuItem
                 key={lineHeight.value}
@@ -156,18 +161,22 @@ export const TextDisplaySettings = () => {
               </DropdownMenuItem>
             ))}
             {settings.lineHeight === "custom" && (
-              <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="1"
-                  max="3"
-                  value={settings.lineHeightCustom || 1.5}
-                  onChange={(e) => updateSettings({ lineHeightCustom: parseFloat(e.target.value) || 1.5 })}
-                  className="h-8 text-right"
-                  placeholder="1.5"
+              <div className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">{(settings.lineHeightCustom || 1.5).toFixed(1)}</span>
+                </div>
+                <Slider
+                  value={[settings.lineHeightCustom || 1.5]}
+                  onValueChange={([value]) => updateSettings({ lineHeightCustom: value })}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  className="w-full"
                 />
-                <div className="text-xs text-muted-foreground text-right mt-1">ערך מספרי (1-3)</div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>3</span>
+                  <span>1</span>
+                </div>
               </div>
             )}
           </DropdownMenuSubContent>
@@ -203,7 +212,7 @@ export const TextDisplaySettings = () => {
             <Type className="ml-2 h-4 w-4" />
             מרווח בין אותיות
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent className="w-56">
             {letterSpacings.map((spacing) => (
               <DropdownMenuItem
                 key={spacing.value}
@@ -219,18 +228,22 @@ export const TextDisplaySettings = () => {
               </DropdownMenuItem>
             ))}
             {settings.letterSpacing === "custom" && (
-              <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="-0.1"
-                  max="0.5"
-                  value={settings.letterSpacingCustom || 0}
-                  onChange={(e) => updateSettings({ letterSpacingCustom: parseFloat(e.target.value) || 0 })}
-                  className="h-8 text-right"
-                  placeholder="em"
+              <div className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium">{(settings.letterSpacingCustom || 0).toFixed(2)} em</span>
+                </div>
+                <Slider
+                  value={[settings.letterSpacingCustom || 0]}
+                  onValueChange={([value]) => updateSettings({ letterSpacingCustom: value })}
+                  min={-0.1}
+                  max={0.5}
+                  step={0.01}
+                  className="w-full"
                 />
-                <div className="text-xs text-muted-foreground text-right mt-1">ערך ב-em</div>
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>0.5</span>
+                  <span>-0.1</span>
+                </div>
               </div>
             )}
           </DropdownMenuSubContent>

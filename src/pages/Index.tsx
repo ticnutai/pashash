@@ -503,9 +503,10 @@ const displayedPesukim = useMemo(() => {
           onPasukSelect={handlePasukSelect}
         />
 
-        {/* View Mode Toggle and Global Minimize - Below Sefarim (Desktop only) */}
+        {/* View Mode Toggle, Text Display Settings, and Global Minimize - Below Sefarim (Desktop only) */}
         <div className="hidden md:flex justify-start items-center gap-2">
           <ViewModeToggle seferId={selectedSefer} />
+          <TextDisplaySettings />
           {filteredPesukim.length > 0 && (
             <MinimizeButton
               variant="global"
@@ -640,9 +641,9 @@ const displayedPesukim = useMemo(() => {
               )}
 
               
-              {/* Mobile controls - Always show ViewModeToggle */}
+              {/* Mobile controls - Always show ViewModeToggle and TextDisplaySettings */}
               {isMobile && (
-                <div className="flex items-center gap-2 flex-nowrap">
+                <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
                   {filteredPesukim.length > 0 && (
                     <Button
                       variant="outline"
@@ -659,6 +660,7 @@ const displayedPesukim = useMemo(() => {
                     </Button>
                   )}
                   <ViewModeToggle seferId={selectedSefer} />
+                  <TextDisplaySettings />
                   {filteredPesukim.length > 0 && (
                     <MinimizeButton
                       variant="global"
