@@ -1,5 +1,6 @@
 import { AlignRight, AlignCenter, AlignLeft, Space, Palette, AlignJustify, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ export const TextDisplaySettings = () => {
     { value: "normal", label: "רגיל", description: "מרווח סטנדרטי" },
     { value: "comfortable", label: "נוח", description: "מרווח בינוני" },
     { value: "spacious", label: "מרווח", description: "מרווח גדול" },
+    { value: "custom", label: "מותאם אישית", description: "הגדר ערך" },
   ];
 
   const lineHeights = [
@@ -34,6 +36,7 @@ export const TextDisplaySettings = () => {
     { value: "normal", label: "רגיל", description: "1.5" },
     { value: "relaxed", label: "רגוע", description: "1.7" },
     { value: "loose", label: "רפוי", description: "2.0" },
+    { value: "custom", label: "מותאם אישית", description: "הגדר ערך" },
   ];
 
   const widths = [
@@ -48,6 +51,7 @@ export const TextDisplaySettings = () => {
     { value: "normal", label: "רגיל", description: "0em" },
     { value: "wide", label: "רחב", description: "0.05em" },
     { value: "wider", label: "רחב יותר", description: "0.1em" },
+    { value: "custom", label: "מותאם אישית", description: "הגדר ערך" },
   ];
 
   return (
@@ -112,6 +116,21 @@ export const TextDisplaySettings = () => {
                 </div>
               </DropdownMenuItem>
             ))}
+            {settings.contentSpacing === "custom" && (
+              <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  type="number"
+                  step="0.25"
+                  min="0"
+                  max="5"
+                  value={settings.contentSpacingCustom || 1}
+                  onChange={(e) => updateSettings({ contentSpacingCustom: parseFloat(e.target.value) || 1 })}
+                  className="h-8 text-right"
+                  placeholder="rem"
+                />
+                <div className="text-xs text-muted-foreground text-right mt-1">ערך ב-rem</div>
+              </div>
+            )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
@@ -136,6 +155,21 @@ export const TextDisplaySettings = () => {
                 </div>
               </DropdownMenuItem>
             ))}
+            {settings.lineHeight === "custom" && (
+              <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="3"
+                  value={settings.lineHeightCustom || 1.5}
+                  onChange={(e) => updateSettings({ lineHeightCustom: parseFloat(e.target.value) || 1.5 })}
+                  className="h-8 text-right"
+                  placeholder="1.5"
+                />
+                <div className="text-xs text-muted-foreground text-right mt-1">ערך מספרי (1-3)</div>
+              </div>
+            )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
@@ -184,6 +218,21 @@ export const TextDisplaySettings = () => {
                 </div>
               </DropdownMenuItem>
             ))}
+            {settings.letterSpacing === "custom" && (
+              <div className="px-2 py-1.5" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="-0.1"
+                  max="0.5"
+                  value={settings.letterSpacingCustom || 0}
+                  onChange={(e) => updateSettings({ letterSpacingCustom: parseFloat(e.target.value) || 0 })}
+                  className="h-8 text-right"
+                  placeholder="em"
+                />
+                <div className="text-xs text-muted-foreground text-right mt-1">ערך ב-em</div>
+              </div>
+            )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
       </DropdownMenuContent>
