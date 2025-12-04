@@ -23,8 +23,9 @@ export const ViewModeToggle = ({ seferId }: ViewModeToggleProps) => {
   const [customCount, setCustomCount] = useState((safeSettings.pasukCount || 20).toString());
 
   const modes: { value: DisplayMode; label: string; icon: React.ReactNode }[] = [
+    { value: "chumash", label: "תצוגת חומש יפה", icon: <Eye className="h-4 w-4 ml-2" /> },
     { value: "full", label: "הצג הכל", icon: <Eye className="h-4 w-4 ml-2" /> },
-    { value: "scroll", label: "תצוגת חומש", icon: <Layers className="h-4 w-4 ml-2" /> },
+    { value: "scroll", label: "תצוגת גלילה", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "compact", label: "תצוגה רצופה", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "verses-only", label: "פסוקים בלבד", icon: <Layers className="h-4 w-4 ml-2" /> },
     { value: "verses-questions", label: "פסוקים ושאלות", icon: <Layers className="h-4 w-4 ml-2" /> },

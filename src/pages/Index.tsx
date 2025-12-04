@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft, User } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User, BookOpen } from "lucide-react";
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
@@ -8,7 +8,7 @@ import { SyncIndicator } from "@/components/SyncIndicator";
 import { GlobalSearchTrigger } from "@/components/GlobalSearchTrigger";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { DevicePreview } from "@/components/DevicePreview";
-import { UserContentPanel } from "@/components/UserContentPanel";
+import { SideContentPanel } from "@/components/SideContentPanel";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { PasukSimpleNavigator } from "@/components/PasukSimpleNavigator";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -30,6 +30,7 @@ import { usePinchZoom } from "@/hooks/usePinchZoom";
 const ScrollPasukView = lazy(() => import("@/components/ScrollPasukView").then(m => ({ default: m.ScrollPasukView })));
 const CompactPasukView = lazy(() => import("@/components/CompactPasukView").then(m => ({ default: m.CompactPasukView })));
 const PaginatedPasukList = lazy(() => import("@/components/PaginatedPasukList").then(m => ({ default: m.PaginatedPasukList })));
+const ChumashView = lazy(() => import("@/components/ChumashView").then(m => ({ default: m.ChumashView })));
 
 // Navigation components (loaded after initial render)
 const QuickSelector = lazy(() => import("@/components/QuickSelector").then(m => ({ default: m.QuickSelector })));
@@ -60,7 +61,9 @@ const Index = () => {
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const [showUserContent, setShowUserContent] = useState(false);
+  const [showSidePanel, setShowSidePanel] = useState(false);
+  const [sidePanelMode, setSidePanelMode] = useState<"user" | "pasuk">("pasuk");
+  const [selectedChumashPasuk, setSelectedChumashPasuk] = useState<FlatPasuk | null>(null);
   const weeklyParshaLoadedRef = useRef(false);
   
   // Enable pinch-to-zoom for dynamic font scaling
@@ -512,12 +515,29 @@ const displayedPesukim = useMemo(() => {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setShowUserContent(!showUserContent)}
-            className={showUserContent ? "bg-primary text-primary-foreground" : ""}
+            onClick={() => {
+              setSidePanelMode("user");
+              setShowSidePanel(!showSidePanel || sidePanelMode !== "user");
+            }}
+            className={showSidePanel && sidePanelMode === "user" ? "bg-primary text-primary-foreground" : ""}
             title="התוכן שלי"
           >
             <User className="h-4 w-4" />
           </Button>
+          {displayMode === "chumash" && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                setSidePanelMode("pasuk");
+                setShowSidePanel(!showSidePanel || sidePanelMode !== "pasuk");
+              }}
+              className={showSidePanel && sidePanelMode === "pasuk" ? "bg-primary text-primary-foreground" : ""}
+              title="פירושים"
+            >
+              <BookOpen className="h-4 w-4" />
+            </Button>
+          )}
           {filteredPesukim.length > 0 && (
             <MinimizeButton
               variant="global"
@@ -527,8 +547,15 @@ const displayedPesukim = useMemo(() => {
           )}
         </div>
 
-        {/* User Content Panel */}
-        <UserContentPanel isOpen={showUserContent} onClose={() => setShowUserContent(false)} />
+        {/* Side Content Panel */}
+        <SideContentPanel 
+          isOpen={showSidePanel} 
+          onClose={() => setShowSidePanel(false)}
+          mode={sidePanelMode}
+          onModeChange={setSidePanelMode}
+          selectedPasuk={selectedChumashPasuk}
+          seferId={selectedSefer}
+        />
 
         {loading ? (
           <SeferSkeleton />
@@ -678,8 +705,11 @@ const displayedPesukim = useMemo(() => {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setShowUserContent(!showUserContent)}
-                    className={showUserContent ? "bg-primary text-primary-foreground" : ""}
+                    onClick={() => {
+                      setSidePanelMode("user");
+                      setShowSidePanel(!showSidePanel || sidePanelMode !== "user");
+                    }}
+                    className={showSidePanel && sidePanelMode === "user" ? "bg-primary text-primary-foreground" : ""}
                     title="התוכן שלי"
                   >
                     <User className="h-4 w-4" />
@@ -716,7 +746,18 @@ const displayedPesukim = useMemo(() => {
                   <div className="pl-2 animate-fade-in"
                     key={`${selectedPerek}-${selectedParsha}-${displayMode}`}
                   >
-                    {displayMode === "compact" ? (
+                    {displayMode === "chumash" ? (
+                      <ChumashView 
+                        pesukim={displayedPesukim} 
+                        seferId={selectedSefer}
+                        selectedPasukId={selectedChumashPasuk?.id ?? null}
+                        onPasukSelect={(pasukId, pasuk) => {
+                          setSelectedChumashPasuk(pasuk);
+                          setSidePanelMode("pasuk");
+                          setShowSidePanel(true);
+                        }}
+                      />
+                    ) : displayMode === "compact" ? (
                       <CompactPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />
                     ) : displayMode === "scroll" ? (
                       <ScrollPasukView pesukim={displayedPesukim} seferId={selectedSefer} forceMinimized={globalMinimize} />

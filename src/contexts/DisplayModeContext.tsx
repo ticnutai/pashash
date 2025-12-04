@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useSyncedState } from "@/hooks/useSyncedState";
 
-export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll";
+export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll" | "chumash";
 
 export interface DisplaySettings {
   mode: DisplayMode;
