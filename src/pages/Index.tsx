@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, useRef } from "react";
-import { Book, Loader2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Book, Loader2, ChevronRight, ChevronLeft, User } from "lucide-react";
 import { Sefer, FlatPasuk } from "@/types/torah";
 import { SeferSelector } from "@/components/SeferSelector";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
@@ -8,6 +8,7 @@ import { SyncIndicator } from "@/components/SyncIndicator";
 import { GlobalSearchTrigger } from "@/components/GlobalSearchTrigger";
 import { TextDisplaySettings } from "@/components/TextDisplaySettings";
 import { DevicePreview } from "@/components/DevicePreview";
+import { UserContentPanel } from "@/components/UserContentPanel";
 import { MinimizeButton } from "@/components/MinimizeButton";
 import { PasukSimpleNavigator } from "@/components/PasukSimpleNavigator";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -59,6 +60,7 @@ const Index = () => {
   const [singlePasukMode, setSinglePasukMode] = useState(false);
   const [globalMinimize, setGlobalMinimize] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [showUserContent, setShowUserContent] = useState(false);
   const weeklyParshaLoadedRef = useRef(false);
   
   // Enable pinch-to-zoom for dynamic font scaling
@@ -503,10 +505,19 @@ const displayedPesukim = useMemo(() => {
           onPasukSelect={handlePasukSelect}
         />
 
-        {/* View Mode Toggle, Text Display Settings, and Global Minimize - Below Sefarim (Desktop only) */}
+        {/* View Mode Toggle, Text Display Settings, User Content, and Global Minimize - Below Sefarim (Desktop only) */}
         <div className="hidden md:flex justify-start items-center gap-2">
           <ViewModeToggle seferId={selectedSefer} />
           <TextDisplaySettings />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowUserContent(!showUserContent)}
+            className={showUserContent ? "bg-primary text-primary-foreground" : ""}
+            title="התוכן שלי"
+          >
+            <User className="h-4 w-4" />
+          </Button>
           {filteredPesukim.length > 0 && (
             <MinimizeButton
               variant="global"
@@ -515,6 +526,9 @@ const displayedPesukim = useMemo(() => {
             />
           )}
         </div>
+
+        {/* User Content Panel */}
+        <UserContentPanel isOpen={showUserContent} onClose={() => setShowUserContent(false)} />
 
         {loading ? (
           <SeferSkeleton />
@@ -661,6 +675,15 @@ const displayedPesukim = useMemo(() => {
                   )}
                   <ViewModeToggle seferId={selectedSefer} />
                   <TextDisplaySettings />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowUserContent(!showUserContent)}
+                    className={showUserContent ? "bg-primary text-primary-foreground" : ""}
+                    title="התוכן שלי"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
                   {filteredPesukim.length > 0 && (
                     <MinimizeButton
                       variant="global"
