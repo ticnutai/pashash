@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Bookmark, BookmarkCheck, BookOpen, StickyNote, Plus } from "lucide-react";
@@ -23,7 +23,7 @@ interface CompactPasukViewProps {
   forceMinimized?: boolean;
 }
 
-export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
+const CompactPasukViewComponent = ({ pesukim, seferId, forceMinimized = false }: CompactPasukViewProps) => {
   const [expandedPasukId, setExpandedPasukId] = useState<number | null>(null);
   const [editorPasukId, setEditorPasukId] = useState<string | null>(null);
   const [displayedCount, setDisplayedCount] = useState(10);
@@ -36,13 +36,13 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   const firstNewPasukRef = useRef<HTMLDivElement>(null);
   const prevDisplayedCountRef = useRef(displayedCount);
 
-  const displayedPesukim = pesukim.slice(0, displayedCount);
+  const displayedPesukim = useMemo(() => pesukim.slice(0, displayedCount), [pesukim, displayedCount]);
   const hasMore = displayedCount < pesukim.length;
   const loadMoreAmount = displaySettings.loadMoreCount || 10;
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     setDisplayedCount(prev => Math.min(prev + loadMoreAmount, pesukim.length));
-  };
+  }, [loadMoreAmount, pesukim.length]);
 
   // Auto-scroll to newly loaded pesukim
   useEffect(() => {
@@ -58,28 +58,27 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
     prevDisplayedCountRef.current = displayedCount;
   }, [displayedCount]);
 
-  const togglePasuk = (pasukId: number) => {
-    setExpandedPasukId(expandedPasukId === pasukId ? null : pasukId);
-  };
+  const togglePasuk = useCallback((pasukId: number) => {
+    setExpandedPasukId(prev => prev === pasukId ? null : pasukId);
+  }, []);
 
-  const handleBookmark = (e: React.MouseEvent, pasuk: FlatPasuk) => {
+  const handleBookmark = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
     toggleBookmark(pasukId, pasuk.text);
     toast.success(isBookmarked(pasukId) ? "הסימניה הוסרה" : "הסימניה נוספה");
-  };
+  }, [seferId, toggleBookmark, isBookmarked]);
 
-  const handleCommentaries = (e: React.MouseEvent, pasuk: FlatPasuk) => {
+  const handleCommentaries = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     navigate(`/commentaries?sefer=${seferId}&perek=${pasuk.perek}&pasuk=${pasuk.pasuk_num}`);
-  };
+  }, [navigate, seferId]);
 
-  const handleAddContent = (e: React.MouseEvent, pasuk: FlatPasuk) => {
+  const handleAddContent = useCallback((e: React.MouseEvent, pasuk: FlatPasuk) => {
     e.stopPropagation();
     const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
-    console.log('🔍 CompactPasukView - Opening editor with pasukId:', pasukId);
     setEditorPasukId(pasukId);
-  };
+  }, [seferId]);
 
   return (
     <div 
@@ -106,10 +105,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
               minHeight: isExpanded ? 'auto' : '100px',
               contain: 'layout style',
             }}
-            onClick={() => {
-              console.log('CompactPasukView: card clicked', { pasukId: pasuk.id });
-              togglePasuk(pasuk.id);
-            }}
+            onClick={() => togglePasuk(pasuk.id)}
           >
             {/* Compact Pasuk Display - Clickable */}
             <div
@@ -226,10 +222,7 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
             {isExpanded && !forceMinimized && (
               <div
                 className="border-t border-border animate-accordion-down"
-                onClick={(e) => {
-                  console.log('CompactPasukView: click inside PasukDisplay wrapper', { pasukId: pasuk.id });
-                  e.stopPropagation();
-                }}
+                onClick={(e) => e.stopPropagation()}
               >
                 <PasukDisplay
                   pasuk={pasuk}
@@ -277,4 +270,5 @@ export const CompactPasukView = ({ pesukim, seferId, forceMinimized = false }: C
   );
 };
 
-// Component is exported above with memo wrapping if needed
+// Memoized export for performance
+export const CompactPasukView = memo(CompactPasukViewComponent);

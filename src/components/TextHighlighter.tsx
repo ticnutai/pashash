@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback, memo } from "react";
 import { Highlighter, Palette, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,7 +24,7 @@ const HIGHLIGHT_COLORS = [
   { name: "כתום", value: "bg-orange-200/70" },
 ];
 
-export const TextHighlighter = ({ text, pasukId, fontFamily, fontSize, color, fontWeight }: TextHighlighterProps) => {
+const TextHighlighterComponent = ({ text, pasukId, fontFamily, fontSize, color, fontWeight }: TextHighlighterProps) => {
   const [showPopover, setShowPopover] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
@@ -34,7 +34,7 @@ export const TextHighlighter = ({ text, pasukId, fontFamily, fontSize, color, fo
   // Fix text once on render
   const fixedText = useMemo(() => fixText(text), [text]);
 
-  const handleTextSelection = () => {
+  const handleTextSelection = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.toString().trim() === "") {
       setShowPopover(false);
@@ -52,14 +52,14 @@ export const TextHighlighter = ({ text, pasukId, fontFamily, fontSize, color, fo
         setShowPopover(true);
       }
     }
-  };
+  }, [fixedText]);
 
-  const handleHighlight = (color: string) => {
+  const handleHighlight = useCallback((highlightColor: string) => {
     if (selectedText && selectionRange) {
       addHighlight({
         pasukId,
         text: selectedText,
-        color,
+        color: highlightColor,
         startIndex: selectionRange.start,
         endIndex: selectionRange.end,
       });
@@ -67,7 +67,7 @@ export const TextHighlighter = ({ text, pasukId, fontFamily, fontSize, color, fo
       setShowPopover(false);
       window.getSelection()?.removeAllRanges();
     }
-  };
+  }, [selectedText, selectionRange, addHighlight, pasukId]);
 
   const renderHighlightedText = () => {
     const highlights = getHighlightsForPasuk(pasukId);
@@ -165,3 +165,6 @@ export const TextHighlighter = ({ text, pasukId, fontFamily, fontSize, color, fo
     </Popover>
   );
 };
+
+// Memoized export for performance
+export const TextHighlighter = memo(TextHighlighterComponent);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, memo } from "react";
+import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -60,7 +60,7 @@ interface PasukDisplayProps {
   hideHeaderActions?: boolean; // Hide actions when displayed in CompactPasukView
 }
 
-export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeaderActions = false }: PasukDisplayProps) => {
+const PasukDisplayComponent = ({ pasuk, seferId, forceMinimized = false, hideHeaderActions = false }: PasukDisplayProps) => {
   const { settings } = useFontAndColorSettings();
   const { displaySettings } = useDisplayMode();
   const displayMode: DisplayMode = displaySettings?.mode || 'full';
@@ -113,23 +113,22 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeade
     0
   );
   const pasukId = `${seferId}-${pasuk.perek}-${pasuk.pasuk_num}`;
-  console.log('🔍 PasukDisplay - pasukId:', pasukId, 'seferId:', seferId, 'perek:', pasuk.perek, 'pasuk:', pasuk.pasuk_num);
   const bookmarked = isBookmarked(pasukId);
 
-  const openAddTitle = () => {
+  const openAddTitle = useCallback(() => {
     setEditorContext({ type: "title", defaultTab: "title" });
     setEditorOpen(true);
-  };
+  }, []);
 
   // פונקציה למציאת מיקום הכותרת בפסוק (מתעלמת מניקוד)
-  const findTitlePositionInPasuk = (title: string, pasukText: string): number => {
+  const findTitlePositionInPasuk = useCallback((title: string, pasukText: string): number => {
     // הסרת ניקוד לצורך השוואה
     const normalizedTitle = title.replace(/[\u0591-\u05C7]/g, '').trim();
     const normalizedPasuk = pasukText.replace(/[\u0591-\u05C7]/g, '');
     
     const position = normalizedPasuk.indexOf(normalizedTitle);
     return position >= 0 ? position : Number.MAX_VALUE;
-  };
+  }, []);
 
   // מיזוג תוכן סטטי עם תוכן משתמשים
   const mergedContent = useMemo(() => {
@@ -137,8 +136,6 @@ export const PasukDisplay = ({ pasuk, seferId, forceMinimized = false, hideHeade
     
     // הוסף כותרות משתמשים לפסוק
     const pasukUserTitles = userTitles.filter(t => t.pasukId === pasukId);
-    console.log('🔍 PasukDisplay - Available titles:', userTitles.map(t => ({ id: t.id, pasukId: t.pasukId, title: t.title })));
-    console.log('🔍 PasukDisplay - Filtered titles for pasukId', pasukId, ':', pasukUserTitles.length);
     
     pasukUserTitles.forEach(title => {
       const titleQuestions = userQuestions
@@ -776,4 +773,6 @@ const AnswerSection = ({
   );
 };
 
-export default memo(PasukDisplay);
+// Memoized export for performance
+export const PasukDisplay = memo(PasukDisplayComponent);
+export default PasukDisplay;

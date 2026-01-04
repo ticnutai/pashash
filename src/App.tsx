@@ -22,7 +22,15 @@ const Commentaries = lazy(() => import("./pages/Commentaries").then(m => ({ defa
 const UserProfile = lazy(() => import("./pages/UserProfile").then(m => ({ default: m.UserProfile })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (was cacheTime)
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">

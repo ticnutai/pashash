@@ -1,3 +1,4 @@
+import { memo, useMemo, useCallback } from "react";
 import { FlatPasuk } from "@/types/torah";
 import { toHebrewNumber } from "@/utils/hebrewNumbers";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ interface ChumashViewProps {
   onPasukSelect: (pasukId: number, pasuk: FlatPasuk) => void;
 }
 
-export const ChumashView = ({ 
+const ChumashViewComponent = ({ 
   pesukim, 
   seferId, 
   selectedPasukId,
@@ -21,19 +22,25 @@ export const ChumashView = ({
   const { settings } = useFontAndColorSettings();
   const displayStyles = useTextDisplayStyles();
   
-  // Group pesukim by perek for display
-  const groupedByPerek = pesukim.reduce((acc, pasuk) => {
-    const key = `${pasuk.parsha_id}-${pasuk.perek}`;
-    if (!acc[key]) {
-      acc[key] = {
-        perek: pasuk.perek,
-        parshaName: pasuk.parsha_name,
-        pesukim: []
-      };
-    }
-    acc[key].pesukim.push(pasuk);
-    return acc;
-  }, {} as Record<string, { perek: number; parshaName: string; pesukim: FlatPasuk[] }>);
+  // Memoized grouping for performance
+  const groupedByPerek = useMemo(() => {
+    return pesukim.reduce((acc, pasuk) => {
+      const key = `${pasuk.parsha_id}-${pasuk.perek}`;
+      if (!acc[key]) {
+        acc[key] = {
+          perek: pasuk.perek,
+          parshaName: pasuk.parsha_name,
+          pesukim: []
+        };
+      }
+      acc[key].pesukim.push(pasuk);
+      return acc;
+    }, {} as Record<string, { perek: number; parshaName: string; pesukim: FlatPasuk[] }>);
+  }, [pesukim]);
+
+  const handlePasukClick = useCallback((pasukId: number, pasuk: FlatPasuk) => {
+    onPasukSelect(pasukId, pasuk);
+  }, [onPasukSelect]);
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-fade-in">
@@ -81,7 +88,7 @@ export const ChumashView = ({
                           ? "hover:bg-accent/30 dark:hover:bg-accent/20" 
                           : "hover:bg-muted/50",
                     )}
-                    onClick={() => onPasukSelect(pasuk.id, pasuk)}
+                    onClick={() => handlePasukClick(pasuk.id, pasuk)}
                   >
                     {/* Pasuk number - styled like traditional Chumash */}
                     <span className="font-bold text-primary/70 dark:text-primary/80 text-[0.7em] align-super mx-1 select-none">
@@ -117,3 +124,6 @@ export const ChumashView = ({
     </div>
   );
 };
+
+// Memoized export for performance
+export const ChumashView = memo(ChumashViewComponent);
