@@ -164,41 +164,41 @@ export const FloatingQuickSelector = ({
 
         {/* Content */}
         <ScrollArea className="h-[320px]">
-          <div className="p-3 space-y-2">
+          <div className="p-3" dir="rtl">
             {currentLevel === "parsha" && (
-              <>
+              <div className="flex flex-wrap gap-2">
                 {sefer.parshiot.map((parsha) => (
                   <Button
                     key={parsha.parsha_id}
                     variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
-                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation break-words whitespace-normal"
+                    className="h-auto py-2 px-3 touch-manipulation whitespace-nowrap"
                     onClick={() => handleParshaSelect(parsha.parsha_id)}
                   >
-                    <span className="font-semibold break-words">{parsha.parsha_name}</span>
+                    <span className="font-semibold">{parsha.parsha_name}</span>
                   </Button>
                 ))}
-              </>
+              </div>
             )}
 
             {currentLevel === "perek" && selectedParsha !== null && (
-              <>
+              <div className="flex flex-wrap gap-2">
                 {perakimToShow.map((perek) => (
                   <Button
                     key={perek.perek_num}
                     variant={selectedPerek === perek.perek_num ? "default" : "outline"}
-                    className="w-full justify-start text-right h-auto py-3 px-4 touch-manipulation"
+                    className="h-auto py-2 px-3 touch-manipulation"
                     onClick={() => handlePerekSelect(perek.perek_num)}
                   >
                     <span className="font-semibold">
-                      פרק {toHebrewNumber(perek.perek_num)}
+                      {toHebrewNumber(perek.perek_num)}
                     </span>
                   </Button>
                 ))}
-              </>
+              </div>
             )}
 
             {currentLevel === "pasuk" && selectedPerek !== null && (
-              <>
+              <div className="flex flex-wrap gap-2">
                 {Array.from({ length: totalPesukimInPerek }, (_, i) => i + 1).map((pasukNum) => {
                   const hasContent = pesukimWithContent.has(pasukNum);
                   return (
@@ -206,22 +206,22 @@ export const FloatingQuickSelector = ({
                       key={pasukNum}
                       variant={selectedPasuk === pasukNum ? "default" : "outline"}
                       className={cn(
-                        "w-full justify-between text-right h-auto py-3 px-4 touch-manipulation",
+                        "h-auto py-2 px-3 touch-manipulation relative",
                         !hasContent && "opacity-50"
                       )}
                       onClick={() => handlePasukSelect(pasukNum)}
                       disabled={!hasContent}
                     >
                       <span className="font-semibold">
-                        פסוק {toHebrewNumber(pasukNum)}
+                        {toHebrewNumber(pasukNum)}
                       </span>
                       {hasContent && (
-                        <span className="h-2 w-2 rounded-full bg-green-500" />
+                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500" />
                       )}
                     </Button>
                   );
                 })}
-              </>
+              </div>
             )}
           </div>
         </ScrollArea>
