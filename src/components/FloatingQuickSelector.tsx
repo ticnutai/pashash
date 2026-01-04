@@ -150,16 +150,16 @@ export const FloatingQuickSelector = ({
             )}
             <h3 className="font-semibold text-sm break-words flex-1">{getCurrentTitle()}</h3>
           </div>
-          {currentLevel !== "parsha" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReset}
-              className="h-8 px-2 flex-shrink-0"
-            >
-              <Home className="h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            className="h-8 px-2 flex-shrink-0"
+            disabled={currentLevel === "parsha"}
+            title="חזור להתחלה"
+          >
+            <Home className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Content */}
