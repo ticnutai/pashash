@@ -146,13 +146,13 @@ export const QuickSelector = ({
         {/* Dynamic Content Based on Current Level */}
         <ScrollArea className="h-[400px]">
           {currentLevel === "parsha" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 animate-fade-in" dir="rtl">
+            <div className="flex flex-wrap gap-2 p-2 animate-fade-in" dir="rtl">
               {sefer.parshiot.map((parsha) => (
                 <Button
                   key={parsha.parsha_id}
                   variant={selectedParsha === parsha.parsha_id ? "default" : "outline"}
                   onClick={() => handleParshaSelect(parsha.parsha_id)}
-                  className="text-xs sm:text-sm h-auto py-3 px-2 sm:px-3 break-words whitespace-normal text-center transition-opacity duration-200"
+                  className="text-xs sm:text-sm h-auto py-2 px-3 sm:px-4 break-words whitespace-nowrap transition-opacity duration-200"
                 >
                   {parsha.parsha_name}
                 </Button>
