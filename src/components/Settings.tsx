@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { ColorPicker } from "@/components/ColorPicker";
 import { SefariaDownloader } from "@/components/SefariaDownloader";
 import { BookmarksDialog } from "@/components/BookmarksDialog";
+import { LocalDBManager } from "@/components/LocalDBManager";
 import { getCalendarPreference, setCalendarPreference } from "@/utils/parshaUtils";
 import { useState, useEffect } from "react";
 
@@ -722,6 +723,22 @@ export const Settings = () => {
           </TabsContent>
 
           <TabsContent value="data" className="space-y-4">
+            {/* Local DB Download - Fast Loading */}
+            <Card className="p-6 space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2 justify-end">
+                  <span>אחסון מקומי להאצת טעינה</span>
+                  <Database className="h-5 w-5" />
+                </h3>
+                <p className="text-sm text-muted-foreground text-right">
+                  הורד את כל הנתונים למחשב שלך. טעינה מיידית בכל ביקור!
+                </p>
+              </div>
+              <div className="flex justify-center">
+                <LocalDBManager />
+              </div>
+            </Card>
+
             <Card className="p-6 space-y-6">
               <div>
                 <h3 className="font-semibold text-lg mb-2">הסימניות שלי</h3>

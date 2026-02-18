@@ -1,7 +1,8 @@
 import { SEFARIA_BOOK_NAMES, MEFARESH_MAPPING, AVAILABLE_COMMENTARIES, SefariaCommentary } from "@/types/sefaria";
 import { supabase } from "@/integrations/supabase/client";
+import { torahDB } from "@/utils/torahDB";
 
-// Cache for loaded commentaries to improve performance
+// In-memory cache for loaded commentaries (fastest)
 const commentaryCache = new Map<string, any>();
 
 /**
@@ -41,16 +42,28 @@ export const loadSefariaCommentary = async (
 ): Promise<any> => {
   const cacheKey = `${sefer}-${mefareshEn}`;
   
-  // Check cache first
+  // Check in-memory cache first (fastest)
   if (commentaryCache.has(cacheKey)) {
     return commentaryCache.get(cacheKey);
   }
 
+  // Check IndexedDB cache (fast)
+  try {
+    const dbCached = await torahDB.getCommentary(cacheKey);
+    if (dbCached) {
+      commentaryCache.set(cacheKey, dbCached);
+      return dbCached;
+    }
+  } catch { /* ignore */ }
+
   try {
     // Dynamic import of the commentary file
     const data = await import(`@/data/sefaria/${mefareshEn}_on_${sefer}.json`);
-    commentaryCache.set(cacheKey, data.default || data);
-    return data.default || data;
+    const result = data.default || data;
+    commentaryCache.set(cacheKey, result);
+    // Save to IndexedDB for persistence
+    torahDB.saveCommentary(cacheKey, result).catch(() => {});
+    return result;
   } catch (error) {
     console.warn(`Commentary not found: ${mefareshEn} on ${sefer}`, error);
     return null;
@@ -119,11 +132,29 @@ export const getAvailableCommentaries = async (
           }
         }
 
-        // If local data not found, fetch from Sefaria API
+        // Check IndexedDB for previously cached API result
+        const apiCacheKey = `api-${sefer}-${commentary.english}-${perek}-${pasuk}`;
+        try {
+          const cachedApi = await torahDB.getCommentary(apiCacheKey);
+          if (cachedApi) {
+            return {
+              id: index + 1000,
+              mefaresh: commentary.hebrew,
+              mefareshEn: commentary.english,
+              text: typeof cachedApi === 'string' ? cachedApi : Array.isArray(cachedApi) ? cachedApi.join(" ") : String(cachedApi),
+            };
+          }
+        } catch { /* ignore */ }
+
+        // If not cached, fetch from Sefaria API
         console.log(`Fetching ${commentary.hebrew} from Sefaria API...`);
         const apiText = await fetchCommentaryFromAPI(sefer, commentary.english, perek, pasuk);
         
         if (apiText) {
+          // Cache API result in IndexedDB for future instant loads
+          const apiCacheKey = `api-${sefer}-${commentary.english}-${perek}-${pasuk}`;
+          torahDB.saveCommentary(apiCacheKey, apiText).catch(() => {});
+
           return {
             id: index + 1000,
             mefaresh: commentary.hebrew,

@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { torahDB } from "@/utils/torahDB";
 
 export interface Highlight {
   pasukId: string;
@@ -27,22 +28,42 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load highlights from Supabase
+  // Load highlights: local DB first (instant), then sync with Supabase
   useEffect(() => {
     if (user) {
-      loadHighlights();
+      loadHighlightsWithCache();
     } else {
       setHighlights([]);
       setLoading(false);
     }
   }, [user]);
 
-  const loadHighlights = async () => {
+  const loadHighlightsWithCache = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    // FAST PATH: Load from local DB
+    try {
+      const cached = await torahDB.getUserData('highlights', user.id);
+      if (cached && Array.isArray(cached)) {
+        setHighlights(cached);
+        setLoading(false); // Show cached data immediately
+      }
+    } catch { /* ignore cache errors */ }
+
+    // BACKGROUND: Sync with Supabase
+    await loadHighlightsFromCloud();
+  };
+
+  const saveHighlightsToCache = (data: Highlight[]) => {
+    if (!user) return;
+    torahDB.saveUserData('highlights', user.id, data).catch(() => {});
+  };
+
+  const loadHighlightsFromCloud = async () => {
     if (!user) return;
 
     try {
-      setLoading(true);
-
       const { data, error } = await supabase
         .from("user_highlights")
         .select("*")
@@ -61,9 +82,9 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       setHighlights(mappedHighlights);
+      saveHighlightsToCache(mappedHighlights);
     } catch (error: any) {
       console.error("Error loading highlights:", error);
-      toast.error("שגיאה בטעינת הדגשות");
     } finally {
       setLoading(false);
     }
@@ -100,7 +121,11 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
         endIndex: data.end_index,
       };
 
-      setHighlights((prev) => [newHighlight, ...prev]);
+      setHighlights((prev) => {
+        const updated = [newHighlight, ...prev];
+        saveHighlightsToCache(updated);
+        return updated;
+      });
       toast.success("ההדגשה נוספה בהצלחה");
     } catch (error: any) {
       console.error("Error adding highlight:", error);
@@ -120,7 +145,11 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      setHighlights((prev) => prev.filter((h) => h.id !== id));
+      setHighlights((prev) => {
+        const updated = prev.filter((h) => h.id !== id);
+        saveHighlightsToCache(updated);
+        return updated;
+      });
       toast.success("ההדגשה נמחקה");
     } catch (error: any) {
       console.error("Error deleting highlight:", error);
@@ -128,14 +157,16 @@ export const HighlightsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getHighlightsForPasuk = (pasukId: string) => {
+  const getHighlightsForPasuk = useCallback((pasukId: string) => {
     return highlights.filter((h) => h.pasukId === pasukId);
-  };
+  }, [highlights]);
+
+  const value = useMemo(() => ({
+    highlights, addHighlight, removeHighlight, getHighlightsForPasuk, loading
+  }), [highlights, loading, getHighlightsForPasuk]);
 
   return (
-    <HighlightsContext.Provider
-      value={{ highlights, addHighlight, removeHighlight, getHighlightsForPasuk, loading }}
-    >
+    <HighlightsContext.Provider value={value}>
       {children}
     </HighlightsContext.Provider>
   );

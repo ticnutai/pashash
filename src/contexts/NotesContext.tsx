@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { torahDB } from "@/utils/torahDB";
 
 export interface Note {
   id: string;
@@ -40,10 +41,10 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
   const [questions, setQuestions] = useState<PersonalQuestion[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load notes and questions from Supabase
+  // Load notes: local DB first (instant), then sync with Supabase
   useEffect(() => {
     if (user) {
-      loadNotesAndQuestions();
+      loadWithCache();
     } else {
       setNotes([]);
       setQuestions([]);
@@ -51,12 +52,42 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  // Auto-save to cache whenever data changes
+  useEffect(() => {
+    if (user && !loading) {
+      saveNotesToCache(notes, questions);
+    }
+  }, [notes, questions]);
+
+  const saveNotesToCache = (n: Note[], q: PersonalQuestion[]) => {
+    if (!user) return;
+    torahDB.saveUserData('notes', user.id, n).catch(() => {});
+    torahDB.saveUserData('personal_questions', user.id, q).catch(() => {});
+  };
+
+  const loadWithCache = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    // FAST PATH: Load from local DB
+    try {
+      const [cachedNotes, cachedQuestions] = await Promise.all([
+        torahDB.getUserData('notes', user.id),
+        torahDB.getUserData('personal_questions', user.id),
+      ]);
+      if (cachedNotes && Array.isArray(cachedNotes)) setNotes(cachedNotes);
+      if (cachedQuestions && Array.isArray(cachedQuestions)) setQuestions(cachedQuestions);
+      setLoading(false);
+    } catch { /* ignore */ }
+
+    // BACKGROUND: Sync with cloud
+    await loadNotesAndQuestions();
+  };
+
   const loadNotesAndQuestions = async () => {
     if (!user) return;
 
     try {
-      setLoading(true);
-
       // Load notes
       const { data: notesData, error: notesError } = await supabase
         .from("user_notes")
@@ -93,9 +124,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       }));
 
       setQuestions(mappedQuestions);
+      saveNotesToCache(mappedNotes, mappedQuestions);
     } catch (error: any) {
       console.error("Error loading notes and questions:", error);
-      toast.error("שגיאה בטעינת הערות ושאלות");
     } finally {
       setLoading(false);
     }
@@ -177,9 +208,9 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getNotesForPasuk = (pasukId: string) => {
+  const getNotesForPasuk = useCallback((pasukId: string) => {
     return notes.filter((note) => note.pasukId === pasukId);
-  };
+  }, [notes]);
 
   const addQuestion = async (pasukId: string, question: string) => {
     if (!user) {
@@ -261,26 +292,19 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getQuestionsForPasuk = (pasukId: string) => {
+  const getQuestionsForPasuk = useCallback((pasukId: string) => {
     return questions.filter((q) => q.pasukId === pasukId);
-  };
+  }, [questions]);
+
+  const value = useMemo(() => ({
+    notes, questions,
+    addNote, updateNote, deleteNote, getNotesForPasuk,
+    addQuestion, updateQuestion, deleteQuestion, getQuestionsForPasuk,
+    loading,
+  }), [notes, questions, loading, getNotesForPasuk, getQuestionsForPasuk]);
 
   return (
-    <NotesContext.Provider
-      value={{
-        notes,
-        questions,
-        addNote,
-        updateNote,
-        deleteNote,
-        getNotesForPasuk,
-        addQuestion,
-        updateQuestion,
-        deleteQuestion,
-        getQuestionsForPasuk,
-        loading,
-      }}
-    >
+    <NotesContext.Provider value={value}>
       {children}
     </NotesContext.Provider>
   );

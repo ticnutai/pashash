@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useSyncedState } from "@/hooks/useSyncedState";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface FontAndColorSettings {
   // Pasuk
@@ -105,19 +105,7 @@ const defaultSettings: FontAndColorSettings = {
 const FontAndColorSettingsContext = createContext<FontAndColorSettingsContextType | undefined>(undefined);
 
 export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { userId } = useAuth();
 
   const { data: settings, setData: setSettingsData, status } = useSyncedState<FontAndColorSettings>({
     localStorageKey: "torah-font-color-settings",
@@ -132,8 +120,10 @@ export const FontAndColorSettingsProvider = ({ children }: { children: ReactNode
     setSettingsData((prev) => ({ ...prev, ...newSettings }));
   };
 
+  const value = useMemo(() => ({ settings, updateSettings, syncStatus: status }), [settings, status]);
+
   return (
-    <FontAndColorSettingsContext.Provider value={{ settings, updateSettings, syncStatus: status }}>
+    <FontAndColorSettingsContext.Provider value={value}>
       {children}
     </FontAndColorSettingsContext.Provider>
   );

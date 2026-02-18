@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { torahDB } from "@/utils/torahDB";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface UserAnswer {
   id: number;
@@ -52,50 +54,76 @@ interface ContentContextType {
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
 
 export const ContentProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [titles, setTitles] = useState<UserTitle[]>([]);
   const [questions, setQuestions] = useState<UserQuestion[]>([]);
   const [answers, setAnswers] = useState<UserAnswer[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load from Supabase on mount
+  // Load from IndexedDB cache first (instant), then sync with Supabase in background
   useEffect(() => {
-    loadContent();
-  }, []);
+    loadContentWithCache();
+  }, [user]);
+
+  // Auto-save to IndexedDB whenever data changes
+  useEffect(() => {
+    if (!loading) {
+      saveContentToCache(titles, questions, answers);
+    }
+  }, [titles, questions, answers]);
+
+  const loadContentWithCache = async () => {
+    try {
+      setLoading(true);
+      
+      // FAST PATH: Load from IndexedDB first
+      try {
+        const cached = await torahDB.getUserData('content', 'global');
+        if (cached) {
+          const { titles: ct, questions: cq, answers: ca } = cached as { titles?: UserTitle[]; questions?: UserQuestion[]; answers?: UserAnswer[] };
+          if (ct) setTitles(ct);
+          if (cq) setQuestions(cq);
+          if (ca) setAnswers(ca);
+          setLoading(false); // Show cached data immediately
+        }
+      } catch { /* ignore */ }
+      
+      // BACKGROUND: Sync with Supabase
+      await loadContent();
+    } catch (error) {
+      console.error("Error in loadContentWithCache:", error);
+      setLoading(false);
+    }
+  };
+
+  const saveContentToCache = (t: UserTitle[], q: UserQuestion[], a: UserAnswer[]) => {
+    torahDB.saveUserData('content', 'global', {
+      titles: t,
+      questions: q,
+      answers: a,
+      timestamp: Date.now(),
+    }).catch(() => {});
+  };
 
   const loadContent = async () => {
     try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
 
-      // Load titles
-      const { data: titlesData, error: titlesError } = await supabase
-        .from('user_titles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Load all three in parallel instead of sequentially
+      const [titlesResult, questionsResult, answersResult] = await Promise.all([
+        supabase.from('user_titles').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_questions').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_answers').select('*').order('created_at', { ascending: false }),
+      ]);
 
-      if (titlesError) throw titlesError;
+      if (titlesResult.error) throw titlesResult.error;
+      if (questionsResult.error) throw questionsResult.error;
+      if (answersResult.error) throw answersResult.error;
 
-      // Load questions
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('user_questions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (questionsError) throw questionsError;
-
-      // Load answers
-      const { data: answersData, error: answersError } = await supabase
-        .from('user_answers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (answersError) throw answersError;
-
-      setTitles(titlesData?.map(t => ({
+      setTitles(titlesResult.data?.map(t => ({
         id: t.id,
         pasukId: t.pasuk_id,
         title: t.title,
@@ -104,7 +132,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: t.user_id,
       })) || []);
 
-      setQuestions(questionsData?.map(q => ({
+      setQuestions(questionsResult.data?.map(q => ({
         id: q.id,
         titleId: q.title_id,
         text: q.text,
@@ -113,7 +141,7 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         userId: q.user_id,
       })) || []);
 
-      setAnswers(answersData?.map(a => ({
+      setAnswers(answersResult.data?.map(a => ({
         id: a.id,
         questionId: a.question_id,
         mefaresh: a.mefaresh,
@@ -122,6 +150,8 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         isShared: a.is_shared || false,
         userId: a.user_id,
       })) || []);
+
+      // Cache saving handled by auto-save useEffect
     } catch (error) {
       console.error("Error loading content:", error);
       toast.error("שגיאה בטעינת תכנים");
@@ -132,8 +162,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
   const addTitle = async (pasukId: string, title: string, isShared: boolean = false): Promise<number> => {
     try {
-      console.log('🔍 ContentContext - Adding title with pasukId:', pasukId, 'title:', title);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
@@ -148,7 +176,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
-      console.log('🔍 ContentContext - Title added successfully:', data);
 
       const newTitle: UserTitle = {
         id: data.id,
@@ -170,8 +197,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
   const addQuestion = async (titleId: number, question: string, isShared: boolean = false): Promise<number> => {
     try {
-      console.log('🔍 ContentContext - Adding question with titleId:', titleId, 'question:', question);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
@@ -186,7 +211,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
-      console.log('🔍 ContentContext - Question added successfully:', data);
 
       const newQuestion: UserQuestion = {
         id: data.id,
@@ -208,8 +232,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
 
   const addAnswer = async (questionId: number, mefaresh: string, text: string, isShared: boolean = false): Promise<number> => {
     try {
-      console.log('🔍 ContentContext - Adding answer with questionId:', questionId, 'mefaresh:', mefaresh);
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
       const { data, error } = await supabase
@@ -225,7 +247,6 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
-      console.log('🔍 ContentContext - Answer added successfully:', data);
 
       const newAnswer: UserAnswer = {
         id: data.id,
@@ -408,27 +429,17 @@ export const ContentProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const value = useMemo(() => ({
+    titles, questions, answers,
+    addTitle, addQuestion, addAnswer,
+    updateTitle, updateQuestion, updateAnswer,
+    deleteTitle, deleteQuestion, deleteAnswer,
+    updateTitleSharing, updateQuestionSharing, updateAnswerSharing,
+    loading,
+  }), [titles, questions, answers, loading]);
+
   return (
-    <ContentContext.Provider
-      value={{
-        titles,
-        questions,
-        answers,
-        addTitle,
-        addQuestion,
-        addAnswer,
-        updateTitle,
-        updateQuestion,
-        updateAnswer,
-        deleteTitle,
-        deleteQuestion,
-        deleteAnswer,
-        updateTitleSharing,
-        updateQuestionSharing,
-        updateAnswerSharing,
-        loading,
-      }}
-    >
+    <ContentContext.Provider value={value}>
       {children}
     </ContentContext.Provider>
   );

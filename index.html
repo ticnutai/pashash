@@ -18,9 +18,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Async font loading to avoid blocking render -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;700&family=Heebo:wght@400;700&family=Alef:wght@400;700&family=Varela+Round&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;700&family=Heebo:wght@400;700&family=Alef:wght@400;700&family=Varela+Round&display=swap" rel="stylesheet"></noscript>
+    <!-- Load only the primary fonts immediately; others load on demand via CSS -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700&display=swap" rel="stylesheet"></noscript>
+    <!-- Secondary fonts: load after first paint -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;700&family=Heebo:wght@400;700&family=Alef:wght@400;700&family=Varela+Round&display=swap" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Miriam+Libre:wght@400;700&family=Rubik:wght@400;700&family=Heebo:wght@400;700&family=Alef:wght@400;700&family=Varela+Round&display=swap" rel="stylesheet"></noscript>
     <title>חמישה חומשי תורה - שאלות ופירושים</title>
     <meta name="description" content="ספריית חמישה חומשי תורה עם שאלות ופירושים של מפרשים מובילים. חפש ולמד עם חיפוש מתקדם." />
     <meta name="author" content="תורה ופירושים" />
@@ -37,7 +40,14 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant splash: shown before React loads, hidden by React mount -->
+      <div id="splash" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:hsl(40,20%,97%);font-family:'Frank Ruhl Libre',Georgia,serif;direction:rtl;">
+        <div style="width:48px;height:48px;border:3px solid hsl(220,60%,20%);border-top-color:transparent;border-radius:50%;animation:sp .8s linear infinite;"></div>
+        <p style="margin-top:16px;font-size:18px;color:hsl(220,40%,12%);">חמישה חומשי תורה</p>
+        <style>@keyframes sp{to{transform:rotate(360deg)}}</style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

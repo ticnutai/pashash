@@ -153,87 +153,53 @@ const Index = () => {
     }
   }, [searchParams]);
 
-  // Cache for loaded sefarim to avoid re-loading
-  const seferCache = useMemo(() => new Map<number, Sefer>(), []);
-  
-  // Load sefer on demand (lazy loading) with non-blocking parsing
+  // Load sefer on demand - lazyLoadSefer handles 3-tier caching (memory → IndexedDB → bundle)
   useEffect(() => {
     console.log('[Index] 📚 Effect 2: Loading sefer. selectedSefer =', selectedSefer, 'weeklyParshaLoadedRef.current =', weeklyParshaLoadedRef.current);
-    const loadSefer = async () => {
-      // Check cache first
-      if (seferCache.has(selectedSefer)) {
-        console.log('[Index] 💾 Sefer found in cache, using cached version');
-        setSeferData(seferCache.get(selectedSefer)!);
-        setLoading(false);
-        return;
-      }
+    let cancelled = false;
 
-      console.log('[Index] 🔄 Sefer not in cache, starting load...');
+    const loadSefer = async () => {
       setLoading(true);
-      setLoadingProgress(0);
+      setLoadingProgress(10);
       try {
-        const seferNames: Record<number, string> = {
-          1: "בראשית",
-          2: "שמות", 
-          3: "ויקרא",
-          4: "במדבר",
-          5: "דברים"
-        };
+        // lazyLoadSefer automatically checks: memory → IndexedDB → dynamic import
+        // If data is in local DB, this completes in ~20-50ms instead of ~1-2s
+        const sefer = await lazyLoadSefer(selectedSefer);
+        if (cancelled) return;
         
-        // Use lazy loading helper for better code splitting
-        (async () => {
-          try {
-            setLoadingProgress(30);
-            
-            // Load sefer using dynamic import (better code splitting)
-            const sefer = await lazyLoadSefer(selectedSefer);
-            setLoadingProgress(60);
-            
-            // Yield to main thread to prevent blocking
-            await yieldToMain();
-            
-            setLoadingProgress(80);
-            
-            console.log('[Index] ⏱️  Processing sefer data');
-            console.log('[Index] 🔍 weeklyParshaLoadedRef.current =', weeklyParshaLoadedRef.current);
-            console.log('[Index] 📊 Current selections: parsha =', selectedParsha, 'perek =', selectedPerek, 'pasuk =', selectedPasuk);
-            
-            // Cache the loaded sefer
-            seferCache.set(selectedSefer, sefer);
-            setSeferData(sefer);
-            
-            // Only reset selections if this isn't the weekly parsha initial load
-            if (!weeklyParshaLoadedRef.current) {
-              console.log('[Index] 🔄 NOT weekly parsha load - RESETTING selections');
-              setSelectedParsha(null);
-              setSelectedPerek(null);
-              setSelectedPasuk(null);
-            } else {
-              console.log('[Index] ✅ Weekly parsha load - KEEPING selections. After first load, resetting flag.');
-              // After first load with weekly parsha, reset the flag
-              weeklyParshaLoadedRef.current = false;
-            }
-            
-            setLoadingProgress(100);
-            setLoading(false);
-            
-            // Preload next sefer in background for smooth navigation
-            preloadNextSefer(selectedSefer);
-          } catch (err) {
-            console.error("Error loading sefer:", err);
-            toast.error("שגיאה בטעינת החומש");
-            setLoading(false);
-          }
-        })();
-      } catch (error) {
-        console.error("Error loading data:", error);
+        setLoadingProgress(80);
+        
+        // Yield to main thread to prevent blocking
+        await yieldToMain();
+        if (cancelled) return;
+        
+        setSeferData(sefer);
+        
+        // Only reset selections if this isn't the weekly parsha initial load
+        if (!weeklyParshaLoadedRef.current) {
+          setSelectedParsha(null);
+          setSelectedPerek(null);
+          setSelectedPasuk(null);
+        } else {
+          weeklyParshaLoadedRef.current = false;
+        }
+        
+        setLoadingProgress(100);
+        setLoading(false);
+        
+        // Preload next sefer in background for smooth navigation
+        preloadNextSefer(selectedSefer);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Error loading sefer:", err);
         toast.error("שגיאה בטעינת החומש");
         setLoading(false);
       }
     };
 
     loadSefer();
-  }, [selectedSefer, seferCache]);
+    return () => { cancelled = true; };
+  }, [selectedSefer]);
   // Flatten pesukim from nested structure with batching to prevent blocking
   const flattenedPesukim = useMemo(() => {
     if (!seferData) return [];

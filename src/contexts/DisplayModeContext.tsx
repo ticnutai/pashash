@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useSyncedState } from "@/hooks/useSyncedState";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type DisplayMode = "full" | "verses-only" | "verses-questions" | "minimized" | "compact" | "scroll" | "chumash";
 
@@ -25,19 +25,7 @@ const defaultSettings: DisplaySettings = {
 const DisplayModeContext = createContext<DisplayModeContextType | undefined>(undefined);
 
 export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { userId } = useAuth();
 
   const { data: displaySettings, setData: setDisplaySettingsData, status } = useSyncedState<DisplaySettings>({
     localStorageKey: "torah-display-settings",
@@ -59,8 +47,14 @@ export const DisplayModeProvider = ({ children }: { children: ReactNode }) => {
     loadMoreCount: displaySettings?.loadMoreCount || defaultSettings.loadMoreCount,
   };
 
+  const value = useMemo(() => ({
+    displaySettings: safeDisplaySettings,
+    updateDisplaySettings,
+    syncStatus: status,
+  }), [safeDisplaySettings.mode, safeDisplaySettings.pasukCount, safeDisplaySettings.loadMoreCount, status]);
+
   return (
-    <DisplayModeContext.Provider value={{ displaySettings: safeDisplaySettings, updateDisplaySettings, syncStatus: status }}>
+    <DisplayModeContext.Provider value={value}>
       {children}
     </DisplayModeContext.Provider>
   );

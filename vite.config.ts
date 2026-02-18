@@ -46,8 +46,9 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        globIgnores: ['**/assets/bereishit-*.js', '**/assets/shemot-*.js', '**/assets/vayikra-*.js', '**/assets/bamidbar-*.js', '**/assets/devarim-*.js'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB for other assets
+        // Exclude Torah data chunks - they're cached in IndexedDB by our app, not by the service worker
+        globIgnores: ['**/assets/data-bereishit-*.js', '**/assets/data-shemot-*.js', '**/assets/data-vayikra-*.js', '**/assets/data-bamidbar-*.js', '**/assets/data-devarim-*.js'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB for non-data assets
         runtimeCaching: [
           {
             urlPattern: /\.json$/,
@@ -102,5 +103,26 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  build: {
+    // Optimize chunk splitting for faster initial load
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React vendor chunk - cached long-term
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // UI framework chunk
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover', '@radix-ui/react-tabs', '@radix-ui/react-tooltip'],
+          // Each Torah book as a separate chunk - only loaded on demand
+          'data-bereishit': ['./src/data/bereishit.json'],
+          'data-shemot': ['./src/data/shemot.json'],
+          'data-vayikra': ['./src/data/vayikra.json'],
+          'data-bamidbar': ['./src/data/bamidbar.json'],
+          'data-devarim': ['./src/data/devarim.json'],
+        },
+      },
+    },
+    // Increase chunk size warning limit for data files
+    chunkSizeWarningLimit: 2000,
   },
 }));

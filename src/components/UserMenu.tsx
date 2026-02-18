@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut, CircleUser, UserCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -15,24 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const UserMenu = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleLogout = async () => {
     try {

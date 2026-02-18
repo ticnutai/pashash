@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { torahDB } from "@/utils/torahDB";
 
 export interface Bookmark {
   id: string;
@@ -30,15 +31,39 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  // טעינת סימניות מ-Supabase
+  // Load bookmarks: local DB first (instant), then sync with Supabase
   useEffect(() => {
     if (user) {
-      loadBookmarks();
+      loadWithCache();
     } else {
       setBookmarks([]);
       setLoading(false);
     }
   }, [user]);
+
+  // Auto-save to cache whenever bookmarks change
+  useEffect(() => {
+    if (user && !loading) {
+      torahDB.saveUserData('bookmarks', user.id, bookmarks).catch(() => {});
+    }
+  }, [bookmarks]);
+
+  const loadWithCache = async () => {
+    if (!user) return;
+    setLoading(true);
+
+    // FAST PATH: Load from local DB
+    try {
+      const cached = await torahDB.getUserData('bookmarks', user.id);
+      if (cached && Array.isArray(cached)) {
+        setBookmarks(cached);
+        setLoading(false);
+      }
+    } catch { /* ignore */ }
+
+    // BACKGROUND: Sync with cloud
+    await loadBookmarks();
+  };
 
   const loadBookmarks = async () => {
     if (!user) return;
@@ -64,7 +89,6 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
       setBookmarks(formattedBookmarks);
     } catch (error) {
       console.error("Error loading bookmarks:", error);
-      toast.error("שגיאה בטעינת הסימניות");
     } finally {
       setLoading(false);
     }
@@ -164,27 +188,21 @@ export const BookmarksProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const getBookmarksForPasuk = (pasukId: string) => {
+  const getBookmarksForPasuk = useCallback((pasukId: string) => {
     return bookmarks.filter((b) => b.pasukId === pasukId);
-  };
+  }, [bookmarks]);
 
-  const isBookmarked = (pasukId: string) => {
+  const isBookmarked = useCallback((pasukId: string) => {
     return bookmarks.some((b) => b.pasukId === pasukId);
-  };
+  }, [bookmarks]);
+
+  const value = useMemo(() => ({
+    bookmarks, addBookmark, removeBookmark, toggleBookmark,
+    updateBookmark, getBookmarksForPasuk, isBookmarked, loading,
+  }), [bookmarks, loading, getBookmarksForPasuk, isBookmarked]);
 
   return (
-    <BookmarksContext.Provider
-      value={{
-        bookmarks,
-        addBookmark,
-        removeBookmark,
-        toggleBookmark,
-        updateBookmark,
-        getBookmarksForPasuk,
-        isBookmarked,
-        loading,
-      }}
-    >
+    <BookmarksContext.Provider value={value}>
       {children}
     </BookmarksContext.Provider>
   );
